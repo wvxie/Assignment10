@@ -23,7 +23,14 @@ if not hf_token:
     )
     st.stop()
 
-headers = {"Authorization": f"Bearer {hf_token}"}
+def request_completion(messages, token):
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {
+        "model": HF_MODEL,
+        "messages": messages,
+        "max_tokens": 512,
+    }
+    return requests.post(HF_ENDPOINT, headers=headers, json=payload, timeout=60)
 
 # Load persisted chat if available
 if "messages" not in st.session_state:
@@ -63,16 +70,10 @@ if prompt:
     with st.chat_message("user"):
         st.write(prompt)
 
-    payload = {
-        "model": HF_MODEL,
-        "messages": st.session_state.messages,
-        "max_tokens": 512,
-    }
-
     with st.chat_message("assistant"):
         placeholder = st.empty()
         try:
-            response = requests.post(HF_ENDPOINT, headers=headers, json=payload, timeout=60)
+            response = request_completion(st.session_state.messages, hf_token)
             if response.status_code != 200:
                 placeholder.error(
                     f"HF API error {response.status_code}: {response.text[:300]}"
