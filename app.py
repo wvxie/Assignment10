@@ -8,7 +8,8 @@ import streamlit as st
 
 HF_ENDPOINT = "https://router.huggingface.co/v1/chat/completions"
 HF_MODEL = "meta-llama/Llama-3.2-1B-Instruct"
-CHAT_DIR = Path("chats")
+BASE_DIR = Path(__file__).resolve().parent
+CHAT_DIR = BASE_DIR / "chats"
 
 st.set_page_config(page_title="My AI Chat", layout="wide")
 st.title("My AI Chat")
