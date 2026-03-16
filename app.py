@@ -1,10 +1,14 @@
+﻿import json
+from datetime import datetime
+from pathlib import Path
+from uuid import uuid4
+
 import requests
 import streamlit as st
-from datetime import datetime
-from uuid import uuid4
 
 HF_ENDPOINT = "https://router.huggingface.co/v1/chat/completions"
 HF_MODEL = "meta-llama/Llama-3.2-1B-Instruct"
+CHAT_DIR = Path("chats")
 
 st.set_page_config(page_title="My AI Chat", layout="wide")
 st.title("My AI Chat")
@@ -36,16 +40,6 @@ def now_stamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
-def make_new_chat(index):
-    return {
-        "id": str(uuid4()),
-        "title": "New Chat",
-        "title_set": False,
-        "timestamp": now_stamp(),
-        "messages": [],
-    }
-
-
 def summarize_title(text, max_words=5):
     words = text.replace("\n", " ").strip().split()
     if not words:
@@ -56,12 +50,71 @@ def summarize_title(text, max_words=5):
     return summary
 
 
-# Initialize chat list
+def chat_path(chat_id):
+    return CHAT_DIR / f"{chat_id}.json"
+
+
+def save_chat(chat):
+    CHAT_DIR.mkdir(exist_ok=True)
+    data = {
+        "id": chat["id"],
+        "title": chat["title"],
+        "timestamp": chat["timestamp"],
+        "messages": chat["messages"],
+        "title_set": chat.get("title_set", False),
+    }
+    chat_path(chat["id"]).write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def load_chats():
+    CHAT_DIR.mkdir(exist_ok=True)
+    chats = []
+    for path in sorted(CHAT_DIR.glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        chat_id = str(data.get("id") or path.stem)
+        title = data.get("title") or "New Chat"
+        timestamp = data.get("timestamp") or now_stamp()
+        messages = data.get("messages") if isinstance(data.get("messages"), list) else []
+        title_set = bool(data.get("title_set")) if "title_set" in data else (title != "New Chat")
+        chats.append(
+            {
+                "id": chat_id,
+                "title": title,
+                "timestamp": timestamp,
+                "messages": messages,
+                "title_set": title_set,
+            }
+        )
+    return chats
+
+
+def make_new_chat(index):
+    chat = {
+        "id": str(uuid4()),
+        "title": f"New Chat {index}",
+        "timestamp": now_stamp(),
+        "messages": [],
+        "title_set": False,
+    }
+    save_chat(chat)
+    return chat
+
+
+# Initialize chat list from disk
 if "chats" not in st.session_state:
-    st.session_state.chats = [make_new_chat(1)]
+    st.session_state.chats = load_chats()
+    if not st.session_state.chats:
+        st.session_state.chats = [make_new_chat(1)]
 
 if "active_chat_id" not in st.session_state:
-    st.session_state.active_chat_id = st.session_state.chats[0]["id"]
+    st.session_state.active_chat_id = (
+        st.session_state.chats[0]["id"] if st.session_state.chats else None
+    )
 
 
 # Sidebar UI for chat navigation
@@ -92,13 +145,17 @@ with st.sidebar:
                     ):
                         select_id = chat["id"]
                 with col2:
-                    if st.button("x", key=f"delete_{chat['id']}"):
+                    if st.button("✕", key=f"delete_{chat['id']}"):
                         delete_id = chat["id"]
 
     if delete_id:
         st.session_state.chats = [
             c for c in st.session_state.chats if c["id"] != delete_id
         ]
+        try:
+            chat_path(delete_id).unlink()
+        except FileNotFoundError:
+            pass
         if st.session_state.active_chat_id == delete_id:
             st.session_state.active_chat_id = (
                 st.session_state.chats[0]["id"] if st.session_state.chats else None
@@ -136,6 +193,8 @@ if user_input:
         active_chat["timestamp"] = now_stamp()
 
     active_chat["messages"].append({"role": "user", "content": user_input})
+    save_chat(active_chat)
+
     with st.chat_message("user"):
         st.write(user_input)
 
@@ -158,6 +217,7 @@ if user_input:
                     content = "(No response text returned)"
                 placeholder.write(content)
                 active_chat["messages"].append({"role": "assistant", "content": content})
+                save_chat(active_chat)
         except Exception as e:
             placeholder.error(f"Request failed: {type(e).__name__}: {e}")
-
+            save_chat(active_chat)
