@@ -1,4 +1,5 @@
 ﻿import json
+import time
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
@@ -27,14 +28,37 @@ if not hf_token:
     st.stop()
 
 
-def request_completion(messages, token):
+def request_completion_stream(messages, token):
     headers = {"Authorization": f"Bearer {token}"}
     payload = {
         "model": HF_MODEL,
         "messages": messages,
         "max_tokens": 512,
+        "stream": True,
     }
-    return requests.post(HF_ENDPOINT, headers=headers, json=payload, timeout=60)
+    return requests.post(
+        HF_ENDPOINT, headers=headers, json=payload, timeout=60, stream=True
+    )
+
+
+def stream_text(response):
+    for line in response.iter_lines(decode_unicode=True):
+        if not line:
+            continue
+        if line.startswith("data: "):
+            data = line[6:].strip()
+        else:
+            continue
+        if data == "[DONE]":
+            break
+        try:
+            payload = json.loads(data)
+        except json.JSONDecodeError:
+            continue
+        delta = payload.get("choices", [{}])[0].get("delta", {})
+        chunk = delta.get("content")
+        if chunk:
+            yield chunk
 
 
 def now_stamp():
@@ -193,7 +217,6 @@ for msg in active_chat["messages"]:
 # Input bar fixed at the bottom
 user_input = st.chat_input("Type your message...")
 if user_input:
-    # If this is the first message in the chat, set a summary title
     if len(active_chat["messages"]) == 0:
         active_chat["title"] = summarize_title(user_input)
         active_chat["title_set"] = True
@@ -207,24 +230,27 @@ if user_input:
 
     with st.chat_message("assistant"):
         placeholder = st.empty()
+        full_text = ""
+        response = None
         try:
-            response = request_completion(active_chat["messages"], hf_token)
+            response = request_completion_stream(active_chat["messages"], hf_token)
             if response.status_code != 200:
                 placeholder.error(
                     f"HF API error {response.status_code}: {response.text[:300]}"
                 )
             else:
-                data = response.json()
-                content = (
-                    data.get("choices", [{}])[0]
-                    .get("message", {})
-                    .get("content", "")
-                )
-                if not content:
-                    content = "(No response text returned)"
-                placeholder.write(content)
-                active_chat["messages"].append({"role": "assistant", "content": content})
+                for chunk in stream_text(response):
+                    full_text += chunk
+                    placeholder.write(full_text)
+                    time.sleep(0.02)
+                if not full_text:
+                    full_text = "(No response text returned)"
+                    placeholder.write(full_text)
+                active_chat["messages"].append({"role": "assistant", "content": full_text})
                 save_chat(active_chat)
         except Exception as e:
             placeholder.error(f"Request failed: {type(e).__name__}: {e}")
             save_chat(active_chat)
+        finally:
+            if response is not None:
+                response.close()
