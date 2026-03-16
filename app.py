@@ -117,6 +117,11 @@ if "active_chat_id" not in st.session_state:
         st.session_state.chats[0]["id"] if st.session_state.chats else None
     )
 
+# Ensure chats are persisted to disk (in case they were created before files existed)
+for c in st.session_state.chats:
+    if not chat_path(c["id"]).exists():
+        save_chat(c)
+
 
 # Sidebar UI for chat navigation
 with st.sidebar:
