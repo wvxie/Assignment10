@@ -71,7 +71,7 @@ with st.sidebar:
         else:
             for chat in st.session_state.chats:
                 is_active = chat["id"] == st.session_state.active_chat_id
-                label = f"{chat['title']} · {chat['timestamp']}"
+                label = f"{chat['title']} - {chat['timestamp']}"
                 col1, col2 = st.columns([0.85, 0.15])
                 with col1:
                     if st.button(
@@ -144,3 +144,4 @@ if user_input:
                 active_chat["messages"].append({"role": "assistant", "content": content})
         except Exception as e:
             placeholder.error(f"Request failed: {type(e).__name__}: {e}")
+
