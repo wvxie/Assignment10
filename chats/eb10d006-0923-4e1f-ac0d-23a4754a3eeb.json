@@ -1,0 +1,20 @@
+{
+  "id": "eb10d006-0923-4e1f-ac0d-23a4754a3eeb",
+  "title": "Hi write me a poem...",
+  "timestamp": "2026-03-16 00:30",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hi write me a poem please"
+    },
+    {
+      "role": "user",
+      "content": "Hi write me a poem please"
+    },
+    {
+      "role": "assistant",
+      "content": "I'd be delighted to write a poem for you. Here's a little something I came up with:\n\n\"Moonlit Dreams\"\n\nThe night air whispers secrets sweet,\nAs moonbeams dance upon the street,\nA gentle breeze that rustles free,\nA lullaby for you and me.\n\nThe stars above, a twinkling show,\nA celestial display below,\nThe world is hushed, in quiet sleep,\nAs the moon's soft light begins to seep.\n\nIn this peaceful hour, I find my way,\nThrough the shadows of a brand new day,\nThe moon's soft light, a guiding ray,\nThat leads me on, to a brighter way.\n\nSo let the moon shine bright in the night,\nAnd fill my heart with wonder and delight,\nFor in its glow, I find my peace,\nAnd a sense of calm, that will never cease.\n\nI hope you enjoy it!"
+    }
+  ],
+  "title_set": true
+}

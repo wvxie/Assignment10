@@ -55,7 +55,11 @@ def stream_text(response):
             payload = json.loads(data)
         except json.JSONDecodeError:
             continue
-        delta = payload.get("choices", [{}])[0].get("delta", {})
+        # Guard against empty/malformed chunks
+        choices = payload.get("choices")
+        if not isinstance(choices, list) or len(choices) == 0:
+            continue
+        delta = choices[0].get("delta", {}) if isinstance(choices[0], dict) else {}
         chunk = delta.get("content")
         if chunk:
             yield chunk
