@@ -1,0 +1,16 @@
+{
+  "id": "0074be73-fb07-4f1c-8425-1150f1528156",
+  "title": "Hi write me a letter...",
+  "timestamp": "2026-03-16 00:16",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hi write me a letter for a bottle"
+    },
+    {
+      "role": "assistant",
+      "content": "Here's a letter for a bottle:\n\nDear Bottle,\n\nI hope this letter finds you in good condition. I just wanted to take a moment to express my gratitude for the wonderful things you bring to my life. You may be just a simple container, but you hold so much more value than that.\n\nYour sturdy walls and reliable lid have been by my side through countless days, nights, and adventures. You've kept my drinks cold on hot summer days, and kept my snacks fresh on busy mornings. You may not be able to talk or read, but you've always been there for me, silently providing comfort and support.\n\nI want you to know that I appreciate all that you do. You may be just a bottle, but you're a treasured friend, and I'm lucky to have you in my life.\n\nThank you for being there for me.\n\nSincerely,\n[Your Name]"
+    }
+  ],
+  "title_set": true
+}
