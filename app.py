@@ -19,29 +19,53 @@ if not hf_token:
     )
     st.stop()
 
-headers = {"Authorization": f"Bearer {hf_token}"}
-payload = {
-    "model": HF_MODEL,
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "max_tokens": 512,
-}
 
-st.write("Sending test message to the model...")
+def request_completion(messages, token):
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {
+        "model": HF_MODEL,
+        "messages": messages,
+        "max_tokens": 512,
+    }
+    return requests.post(HF_ENDPOINT, headers=headers, json=payload, timeout=60)
 
-try:
-    response = requests.post(HF_ENDPOINT, headers=headers, json=payload, timeout=60)
-    if response.status_code != 200:
-        st.error(f"HF API error {response.status_code}: {response.text[:300]}")
-    else:
-        data = response.json()
-        content = (
-            data.get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", "")
-        )
-        if not content:
-            content = "(No response text returned)"
-        st.subheader("Model response")
+
+# Initialize conversation history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Render conversation history
+for msg in st.session_state.messages:
+    role = msg.get("role", "assistant")
+    content = msg.get("content", "")
+    with st.chat_message(role):
         st.write(content)
-except Exception as e:
-    st.error(f"Request failed: {type(e).__name__}: {e}")
+
+# Input bar fixed at the bottom
+user_input = st.chat_input("Type your message...")
+if user_input:
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.write(user_input)
+
+    with st.chat_message("assistant"):
+        placeholder = st.empty()
+        try:
+            response = request_completion(st.session_state.messages, hf_token)
+            if response.status_code != 200:
+                placeholder.error(
+                    f"HF API error {response.status_code}: {response.text[:300]}"
+                )
+            else:
+                data = response.json()
+                content = (
+                    data.get("choices", [{}])[0]
+                    .get("message", {})
+                    .get("content", "")
+                )
+                if not content:
+                    content = "(No response text returned)"
+                placeholder.write(content)
+                st.session_state.messages.append({"role": "assistant", "content": content})
+        except Exception as e:
+            placeholder.error(f"Request failed: {type(e).__name__}: {e}")
