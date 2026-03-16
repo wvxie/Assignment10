@@ -39,10 +39,21 @@ def now_stamp():
 def make_new_chat(index):
     return {
         "id": str(uuid4()),
-        "title": f"Chat {index}",
+        "title": "New Chat",
+        "title_set": False,
         "timestamp": now_stamp(),
         "messages": [],
     }
+
+
+def summarize_title(text, max_words=5):
+    words = text.replace("\n", " ").strip().split()
+    if not words:
+        return "New Chat"
+    summary = " ".join(words[:max_words])
+    if len(words) > max_words:
+        summary += "..."
+    return summary
 
 
 # Initialize chat list
@@ -81,7 +92,7 @@ with st.sidebar:
                     ):
                         select_id = chat["id"]
                 with col2:
-                    if st.button("?", key=f"delete_{chat['id']}"):
+                    if st.button("x", key=f"delete_{chat['id']}"):
                         delete_id = chat["id"]
 
     if delete_id:
@@ -119,6 +130,11 @@ for msg in active_chat["messages"]:
 # Input bar fixed at the bottom
 user_input = st.chat_input("Type your message...")
 if user_input:
+    if not active_chat.get("title_set"):
+        active_chat["title"] = summarize_title(user_input)
+        active_chat["title_set"] = True
+        active_chat["timestamp"] = now_stamp()
+
     active_chat["messages"].append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.write(user_input)
