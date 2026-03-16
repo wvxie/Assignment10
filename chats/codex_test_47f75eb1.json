@@ -1,0 +1,20 @@
+{
+  "id": "codex_test_47f75eb1",
+  "title": "Test chat",
+  "timestamp": "2026-03-16 00:05",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Test message"
+    },
+    {
+      "role": "user",
+      "content": "Hi please write me a poem"
+    },
+    {
+      "role": "assistant",
+      "content": "Here's a poem for you:\n\nA gentle breeze whispers through the trees,\nA soothing melody that brings us to our knees.\nThe stars above, a twinkling sea,\nA celestial show, for you and me.\n\nThe world is full of beauty and might,\nA tapestry of wonder, a shining light.\nThe sun rises high, the day begins anew,\nA fresh beginning, for me and for you.\n\nThe moon glows bright, a silver glow,\nA beacon in the night, that shines so low.\nThe world is full of dreams and desires,\nA place where our hearts and souls conspire.\n\nSo let us breathe, let us be,\nAnd let our spirits soar, wild and free.\nFor in the beauty of the world around,\nWe find our peace, our love, and our sound."
+    }
+  ],
+  "title_set": true
+}

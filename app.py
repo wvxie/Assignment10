@@ -193,7 +193,8 @@ for msg in active_chat["messages"]:
 # Input bar fixed at the bottom
 user_input = st.chat_input("Type your message...")
 if user_input:
-    if not active_chat.get("title_set"):
+    # If this is the first message in the chat, set a summary title
+    if len(active_chat["messages"]) == 0:
         active_chat["title"] = summarize_title(user_input)
         active_chat["title_set"] = True
         active_chat["timestamp"] = now_stamp()
