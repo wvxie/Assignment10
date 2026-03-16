@@ -1,5 +1,7 @@
 import requests
 import streamlit as st
+from datetime import datetime
+from uuid import uuid4
 
 HF_ENDPOINT = "https://router.huggingface.co/v1/chat/completions"
 HF_MODEL = "meta-llama/Llama-3.2-1B-Instruct"
@@ -30,12 +32,85 @@ def request_completion(messages, token):
     return requests.post(HF_ENDPOINT, headers=headers, json=payload, timeout=60)
 
 
-# Initialize conversation history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+def now_stamp():
+    return datetime.now().strftime("%Y-%m-%d %H:%M")
+
+
+def make_new_chat(index):
+    return {
+        "id": str(uuid4()),
+        "title": f"Chat {index}",
+        "timestamp": now_stamp(),
+        "messages": [],
+    }
+
+
+# Initialize chat list
+if "chats" not in st.session_state:
+    st.session_state.chats = [make_new_chat(1)]
+
+if "active_chat_id" not in st.session_state:
+    st.session_state.active_chat_id = st.session_state.chats[0]["id"]
+
+
+# Sidebar UI for chat navigation
+with st.sidebar:
+    st.header("Chats")
+    if st.button("New Chat"):
+        new_chat = make_new_chat(len(st.session_state.chats) + 1)
+        st.session_state.chats.append(new_chat)
+        st.session_state.active_chat_id = new_chat["id"]
+
+    list_container = st.container(height=350)
+    delete_id = None
+    select_id = None
+
+    with list_container:
+        if not st.session_state.chats:
+            st.info("No chats yet. Click New Chat to start one.")
+        else:
+            for chat in st.session_state.chats:
+                is_active = chat["id"] == st.session_state.active_chat_id
+                label = f"{chat['title']} · {chat['timestamp']}"
+                col1, col2 = st.columns([0.85, 0.15])
+                with col1:
+                    if st.button(
+                        label,
+                        key=f"select_{chat['id']}",
+                        type="primary" if is_active else "secondary",
+                    ):
+                        select_id = chat["id"]
+                with col2:
+                    if st.button("?", key=f"delete_{chat['id']}"):
+                        delete_id = chat["id"]
+
+    if delete_id:
+        st.session_state.chats = [
+            c for c in st.session_state.chats if c["id"] != delete_id
+        ]
+        if st.session_state.active_chat_id == delete_id:
+            st.session_state.active_chat_id = (
+                st.session_state.chats[0]["id"] if st.session_state.chats else None
+            )
+
+    if select_id:
+        st.session_state.active_chat_id = select_id
+
+
+# Resolve active chat
+active_chat = None
+for c in st.session_state.chats:
+    if c["id"] == st.session_state.active_chat_id:
+        active_chat = c
+        break
+
+if active_chat is None:
+    st.info("No active chat. Create a new chat from the sidebar.")
+    st.stop()
+
 
 # Render conversation history
-for msg in st.session_state.messages:
+for msg in active_chat["messages"]:
     role = msg.get("role", "assistant")
     content = msg.get("content", "")
     with st.chat_message(role):
@@ -44,14 +119,14 @@ for msg in st.session_state.messages:
 # Input bar fixed at the bottom
 user_input = st.chat_input("Type your message...")
 if user_input:
-    st.session_state.messages.append({"role": "user", "content": user_input})
+    active_chat["messages"].append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.write(user_input)
 
     with st.chat_message("assistant"):
         placeholder = st.empty()
         try:
-            response = request_completion(st.session_state.messages, hf_token)
+            response = request_completion(active_chat["messages"], hf_token)
             if response.status_code != 200:
                 placeholder.error(
                     f"HF API error {response.status_code}: {response.text[:300]}"
@@ -66,6 +141,6 @@ if user_input:
                 if not content:
                     content = "(No response text returned)"
                 placeholder.write(content)
-                st.session_state.messages.append({"role": "assistant", "content": content})
+                active_chat["messages"].append({"role": "assistant", "content": content})
         except Exception as e:
             placeholder.error(f"Request failed: {type(e).__name__}: {e}")
